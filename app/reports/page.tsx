@@ -312,7 +312,7 @@ export default function ReportsPage() {
           <h2 className="text-2xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent mb-3">
             Access Denied
           </h2>
-          <p className="text-gray-600 font-medium">You don't have permission to view analytics</p>
+          <p className="text-gray-600 font-medium">You don&apos;t have permission to view analytics</p>
         </div>
       </div>
     )

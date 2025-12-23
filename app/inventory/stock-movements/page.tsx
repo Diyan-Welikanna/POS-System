@@ -97,7 +97,7 @@ export default function StockMovementsPage() {
   if (!isAdmin && !isManager) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>You don't have permission to access stock movements</p>
+        <p>You don&apos;t have permission to access stock movements</p>
       </div>
     )
   }

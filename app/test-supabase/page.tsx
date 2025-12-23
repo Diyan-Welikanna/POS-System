@@ -238,7 +238,7 @@ export default function SupabaseTestPage() {
           <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <h3 className="font-semibold text-yellow-900 mb-2">Common Issues & Solutions</h3>
             <ul className="text-sm text-yellow-800 space-y-2 list-disc list-inside">
-              <li>If "Not logged in": Go to <Link href="/auth/login" className="underline">/auth/login</Link> first</li>
+              <li>If &quot;Not logged in&quot;: Go to <Link href="/auth/login" className="underline">/auth/login</Link> first</li>
               <li>If tables show errors: Run the schema.sql in Supabase SQL Editor</li>
               <li>If auth errors: Check .env.local has correct Supabase credentials</li>
               <li>If RLS errors: Ensure Row Level Security policies are set up</li>
