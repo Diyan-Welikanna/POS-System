@@ -1,0 +1,13 @@
+# PWA Icon Placeholders
+
+To add proper PWA icons:
+
+1. Create or generate icons at https://realfavicongenerator.net/
+2. Upload a 512x512 PNG logo
+3. Download the generated icons
+4. Add these files to this directory:
+   - icon-192x192.png
+   - icon-512x512.png
+
+Or use this quick command to create basic placeholder icons:
+- The app will still work without icons, but PWA install will show default browser icon
