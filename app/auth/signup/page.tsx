@@ -198,7 +198,7 @@ export default function SignupPage() {
                 placeholder="••••••••"
                 required
                 minLength={6}
-                style={{ WebkitTextSecurity: 'disc' }}
+                style={{ WebkitTextSecurity: 'disc' } as React.CSSProperties}
               />
               <p className="text-xs text-gray-500 mt-2 font-medium">Min. 6 characters</p>
             </div>
@@ -222,7 +222,7 @@ export default function SignupPage() {
                 placeholder="••••••••"
                 required
                 minLength={6}
-                style={{ WebkitTextSecurity: 'disc' }}
+                style={{ WebkitTextSecurity: 'disc' } as React.CSSProperties}
               />
               <p className="text-xs text-gray-500 mt-2 font-medium">Must match</p>
             </div>
