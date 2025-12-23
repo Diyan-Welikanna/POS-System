@@ -81,9 +81,9 @@ export default function POSPage() {
   const [showCustomerModal, setShowCustomerModal] = useState(false)
 
   // Fetch products - online or from cache
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchProducts()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOnline])
 
   const fetchProducts = async () => {
@@ -114,10 +114,10 @@ export default function POSPage() {
   }
 
   // Realtime product updates
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleProductUpdate = useCallback((payload: any) => {
     console.log('[Realtime] Product updated:', payload)
     fetchProducts()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useRealtimeProducts(handleProductUpdate)

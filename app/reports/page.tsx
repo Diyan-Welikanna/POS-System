@@ -125,11 +125,11 @@ export default function ReportsPage() {
     }
   }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (user && startDate && endDate) {
       fetchAnalytics()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, startDate, endDate, selectedCashierId])
 
   const fetchAnalytics = async () => {
