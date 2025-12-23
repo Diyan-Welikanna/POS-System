@@ -125,6 +125,7 @@ export default function ReportsPage() {
     }
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (user && startDate && endDate) {
       fetchAnalytics()
