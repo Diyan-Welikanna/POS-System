@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               full_name: user.user_metadata?.full_name || null,
             }
             
-            const { data: createdProfile, error: createError } = await supabase
+            const { data: createdProfile, error: createError } = await (supabase as any)
               .from('profiles')
               .insert([newProfile])
               .select()
