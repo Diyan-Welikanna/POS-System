@@ -1,9 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSettings } from '@/context/SettingsContext'
 import { useRole } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabaseClient'
+
+interface User {
+  id: string
+  email: string
+  full_name: string | null
+  role: string
+  created_at: string
+}
 
 export default function SettingsPage() {
   const { settings, updateSettings } = useSettings()
@@ -12,6 +21,163 @@ export default function SettingsPage() {
   const [taxRate, setTaxRate] = useState((settings.taxRate * 100).toString())
   const [currency, setCurrency] = useState(settings.currency)
   const [saved, setSaved] = useState(false)
+  
+  // User management states
+  const [users, setUsers] = useState<User[]>([])
+  const [showAddUserModal, setShowAddUserModal] = useState(false)
+  const [showEditUserModal, setShowEditUserModal] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [newUserEmail, setNewUserEmail] = useState('')
+  const [newUserPassword, setNewUserPassword] = useState('')
+  const [newUserName, setNewUserName] = useState('')
+  const [newUserRole, setNewUserRole] = useState<'admin' | 'manager' | 'cashier'>('cashier')
+  const [editUserName, setEditUserName] = useState('')
+  const [editUserRole, setEditUserRole] = useState<'admin' | 'manager' | 'cashier'>('cashier')
+  const [isCreating, setIsCreating] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
+
+  // Fetch users on component mount
+  useEffect(() => {
+    if (isAdmin) {
+      fetchUsers()
+    }
+  }, [isAdmin])
+
+  const fetchUsers = async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, email, full_name, role, created_at')
+      .order('created_at', { ascending: false })
+
+    if (!error && data) {
+      setUsers(data)
+    }
+  }
+
+  const handleCreateUser = async () => {
+    if (!newUserEmail || !newUserPassword || !newUserName) {
+      alert('Please fill in all fields')
+      return
+    }
+
+    if (newUserPassword.length < 6) {
+      alert('Password must be at least 6 characters')
+      return
+    }
+
+    setIsCreating(true)
+
+    try {
+      // Create user with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: newUserEmail,
+        password: newUserPassword,
+        options: {
+          data: {
+            full_name: newUserName,
+          },
+        },
+      })
+
+      if (authError) throw authError
+
+      if (!authData.user) {
+        throw new Error('User creation failed')
+      }
+
+      // Update profile with selected role
+      const { error: profileError } = await (supabase as any)
+        .from('profiles')
+        .upsert({
+          id: authData.user.id,
+          email: newUserEmail,
+          full_name: newUserName,
+          role: newUserRole,
+        })
+
+      if (profileError) throw profileError
+
+      alert(`User created successfully! Role: ${newUserRole}`)
+      
+      // Reset form and close modal
+      setNewUserEmail('')
+      setNewUserPassword('')
+      setNewUserName('')
+      setNewUserRole('cashier')
+      setShowAddUserModal(false)
+      
+      // Refresh user list
+      fetchUsers()
+
+    } catch (error: any) {
+      console.error('Error creating user:', error)
+      alert(`Error: ${error.message}`)
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user)
+    setEditUserName(user.full_name || '')
+    setEditUserRole(user.role as 'admin' | 'manager' | 'cashier')
+    setShowEditUserModal(true)
+  }
+
+  const handleUpdateUser = async () => {
+    if (!selectedUser || !editUserName) {
+      alert('Please fill in all fields')
+      return
+    }
+
+    setIsUpdating(true)
+
+    try {
+      const { error } = await (supabase as any)
+        .from('profiles')
+        .update({
+          full_name: editUserName,
+          role: editUserRole,
+        })
+        .eq('id', selectedUser.id)
+
+      if (error) throw error
+
+      alert('User updated successfully!')
+      setShowEditUserModal(false)
+      setSelectedUser(null)
+      fetchUsers()
+
+    } catch (error: any) {
+      console.error('Error updating user:', error)
+      alert(`Error: ${error.message}`)
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleDeleteUser = async (user: User) => {
+    if (!confirm(`Are you sure you want to delete user: ${user.full_name || user.email}?\n\nThis action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      // Delete from profiles table
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', user.id)
+
+      if (error) throw error
+
+      alert('User deleted successfully!')
+      fetchUsers()
+
+    } catch (error: any) {
+      console.error('Error deleting user:', error)
+      alert(`Error: ${error.message}`)
+    }
+  }
 
   // Redirect if not admin
   if (!isAdmin) {
@@ -118,6 +284,73 @@ export default function SettingsPage() {
               </div>
             </div>
 
+            {/* Additional Settings Placeholder */}
+            <div className="border-b-2 border-gray-200 pb-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">
+                User Management
+              </h2>
+              
+              <div className="mb-6">
+                <button
+                  onClick={() => setShowAddUserModal(true)}
+                  className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 font-bold shadow-lg hover:shadow-xl transition-all hover:scale-105"
+                >
+                  + Add New User
+                </button>
+              </div>
+
+              {/* Users Table */}
+              <div className="bg-white rounded-xl border-2 border-gray-200 overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+                    <tr>
+                      <th className="px-6 py-4 text-left font-bold">Name</th>
+                      <th className="px-6 py-4 text-left font-bold">Email</th>
+                      <th className="px-6 py-4 text-left font-bold">Role</th>
+                      <th className="px-6 py-4 text-left font-bold">Created</th>
+                      <th className="px-6 py-4 text-left font-bold">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map((user, index) => (
+                      <tr key={user.id} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                        <td className="px-6 py-4 font-semibold text-gray-900">{user.full_name || 'N/A'}</td>
+                        <td className="px-6 py-4 text-gray-700">{user.email}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                            user.role === 'admin' ? 'bg-red-100 text-red-800' :
+                            user.role === 'manager' ? 'bg-blue-100 text-blue-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>
+                            {user.role.toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-gray-600 text-sm">
+                          {new Date(user.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEditUser(user)}
+                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-sm transition-all"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUser(user)}
+                              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold text-sm transition-all"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
             {/* Future Settings Placeholder */}
             <div className="pb-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-6">
@@ -172,6 +405,152 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+
+        {/* Add User Modal */}
+        {showAddUserModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">Add New User</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Full Name</label>
+                  <input
+                    type="text"
+                    value={newUserName}
+                    onChange={(e) => setNewUserName(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-400"
+                    placeholder="John Doe"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Email</label>
+                  <input
+                    type="email"
+                    value={newUserEmail}
+                    onChange={(e) => setNewUserEmail(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-400"
+                    placeholder="user@example.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Password</label>
+                  <input
+                    type="password"
+                    value={newUserPassword}
+                    onChange={(e) => setNewUserPassword(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-400"
+                    placeholder="Min. 6 characters"
+                    minLength={6}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Role</label>
+                  <select
+                    value={newUserRole}
+                    onChange={(e) => setNewUserRole(e.target.value as 'admin' | 'manager' | 'cashier')}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-400 font-semibold"
+                  >
+                    <option value="cashier">Cashier - POS Terminal Only</option>
+                    <option value="manager">Manager - Full Access (No Settings)</option>
+                    <option value="admin">Admin - Full System Access</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowAddUserModal(false)
+                    setNewUserEmail('')
+                    setNewUserPassword('')
+                    setNewUserName('')
+                    setNewUserRole('cashier')
+                  }}
+                  className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl hover:bg-gray-50 font-bold transition-all"
+                  disabled={isCreating}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateUser}
+                  disabled={isCreating}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isCreating ? 'Creating...' : 'Create User'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit User Modal */}
+        {showEditUserModal && selectedUser && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">Edit User</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Email (Cannot be changed)</label>
+                  <input
+                    type="email"
+                    value={selectedUser.email}
+                    disabled
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-100 text-gray-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Full Name</label>
+                  <input
+                    type="text"
+                    value={editUserName}
+                    onChange={(e) => setEditUserName(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-400"
+                    placeholder="John Doe"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Role</label>
+                  <select
+                    value={editUserRole}
+                    onChange={(e) => setEditUserRole(e.target.value as 'admin' | 'manager' | 'cashier')}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-400 font-semibold"
+                  >
+                    <option value="cashier">Cashier - POS Terminal Only</option>
+                    <option value="manager">Manager - Full Access (No Settings)</option>
+                    <option value="admin">Admin - Full System Access</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowEditUserModal(false)
+                    setSelectedUser(null)
+                  }}
+                  className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl hover:bg-gray-50 font-bold transition-all"
+                  disabled={isUpdating}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateUser}
+                  disabled={isUpdating}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUpdating ? 'Updating...' : 'Update User'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
