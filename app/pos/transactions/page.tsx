@@ -240,12 +240,14 @@ export default function TransactionsPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold">
                       <button
                         onClick={() => setSelectedTransaction(transaction)}
-                        className="text-blue-600 hover:text-blue-800 mr-3 hover:underline\">
+                        className="text-blue-600 hover:text-blue-800 mr-3 hover:underline">
                         👁️ View
                       </button>
                       <button
                         onClick={() => handleReprintReceipt(transaction)}
-                        className="text-green-600 hover:text-green-800 hover:underline\">\n                        🖨️ Reprint\n                      </button>
+                        className="text-green-600 hover:text-green-800 hover:underline">
+                        🖨️ Reprint
+                      </button>
                     </td>
                   </tr>
                 ))}
